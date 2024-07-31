@@ -12,7 +12,7 @@ pub fn build_parser() -> Command {
                 .about("Start a new LaTeX project")
                 // Name of the LaTeX project to initialize
                 .arg(
-                    Arg::new("name")
+                    Arg::new("project")
                         .help("Name of the LaTeX project to initialize")
                         .required(true),
                 ),
@@ -28,4 +28,3 @@ pub fn build_parser() -> Command {
                 ),
         )
 }
-

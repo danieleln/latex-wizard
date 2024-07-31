@@ -10,6 +10,9 @@ pub enum Log {
 
     #[error("{} {}", TAG_ERROR, .0)]
     InvalidCommandLineArgument(String),
+
+    #[error("{} {}", TAG_ERROR, .0)]
+    FileSystemError(String),
     // #[error("{} {}", TAG_ERROR, .0)]
     // Generic(String),
 }
