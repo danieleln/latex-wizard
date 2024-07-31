@@ -1,8 +1,7 @@
 mod cli;
 mod config;
 mod logs;
-
-use logs::Log;
+mod subcommands;
 
 fn main() {
     let result = app();
@@ -12,7 +11,7 @@ fn main() {
     }
 }
 
-fn app() -> Result<(), Log> {
+fn app() -> Result<(), logs::Log> {
     // Parse input arguments
     let args = cli::build_parser()
         .try_get_matches()
@@ -20,10 +19,8 @@ fn app() -> Result<(), Log> {
 
     // Run the requested subcommand
     match args.subcommand() {
-        Some(("init", args)) => println!("init: {:?}", args),
-        Some(("compile", args)) => println!("compile: {:?}", args),
+        Some(("init", args)) => subcommands::init(&args),
+        Some(("compile", args)) => subcommands::compile(&args),
         _ => unreachable!(),
     }
-
-    Ok(())
 }
