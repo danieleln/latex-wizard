@@ -13,6 +13,9 @@ pub enum Log {
 
     #[error("{} {}", TAG_ERROR, .0)]
     FileSystemError(String),
+
+    #[error("{} {}", TAG_ERROR, .0)]
+    ShellCommandError(String),
     // #[error("{} {}", TAG_ERROR, .0)]
     // Generic(String),
 }
@@ -31,4 +34,8 @@ impl From<clap::error::Error> for Log {
             }
         }
     }
+}
+
+pub fn log_error(msg: String) {
+    println!("{} {}", TAG_ERROR, msg);
 }
