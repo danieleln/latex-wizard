@@ -1,4 +1,4 @@
-mod info {
-    const APP: &str = "latex";
-    const DESCRIPTION: &str = "Tool to manage LaTeX projects";
+pub mod info {
+    pub const APP: &str = "latex";
+    pub const DESCRIPTION: &str = "Tool to manage LaTeX projects";
 }
