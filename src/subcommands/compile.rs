@@ -124,86 +124,45 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
     // 4. run `pdflatex` a second time
 
     // 1. Run pdflatex
-    let output = Command::new("pdflatex")
-        .arg("-halt-on-error")
-        .arg("-output-directory")
-        .arg(output_directory)
-        .arg(tex_file)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|e| {
-            Log::ShellCommandError(format!(
-                "Failed to spawn command `pdflatex`:\n{}",
-                e.to_string()
-            ))
-        })?;
-
-    if !output.status.success() {
-        return Err(Log::ShellCommandError(format!(
-            "Command `pdflatex` failed with exit code {}.\n{}\n{}",
-            output.status.code().unwrap_or(-1),
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )));
-    }
+    run_shell_cmd(
+        Command::new("pdflatex")
+            .arg("-halt-on-error")
+            .arg("-output-directory")
+            .arg(output_directory)
+            .arg(tex_file),
+    )?;
 
     // 2. Run makeglossaries
-    let output = Command::new("makeglossaries")
-        .arg("-d")
-        .arg(output_directory)
-        .arg(tex_file.file_stem().unwrap())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|e| {
-            Log::ShellCommandError(format!(
-                "Failed to spawn command `makeglossaries`:\n{}",
-                e.to_string()
-            ))
-        })?;
-
-    if !output.status.success() {
-        return Err(Log::ShellCommandError(format!(
-            "Command `makeglossaries` failed with exit code {}.\n{}\n{}",
-            output.status.code().unwrap_or(-1),
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )));
-    }
-
+    run_shell_cmd(
+        Command::new("makeglossaries")
+            .arg("-d")
+            .arg(output_directory)
+            .arg(tex_file.file_stem().unwrap()),
+    )?;
     // Run biber
-    let output = Command::new("biber")
-        .arg("--input-directory")
-        .arg(output_directory)
-        .arg("--output-directory")
-        .arg(output_directory)
-        .arg(tex_file.file_stem().unwrap())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|e| {
-            Log::ShellCommandError(format!(
-                "Failed to spawn command `biber`:\n{}",
-                e.to_string()
-            ))
-        })?;
-
-    if !output.status.success() {
-        return Err(Log::ShellCommandError(format!(
-            "Command `biber` failed with exit code {}.\n{}\n{}",
-            output.status.code().unwrap_or(-1),
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )));
-    }
+    run_shell_cmd(
+        Command::new("biber")
+            .arg("--input-directory")
+            .arg(output_directory)
+            .arg("--output-directory")
+            .arg(output_directory)
+            .arg(tex_file.file_stem().unwrap()),
+    )?;
 
     // 4. Run pdflatex
-    let output = Command::new("pdflatex")
-        .arg("-halt-on-error")
-        .arg("-output-directory")
-        .arg(output_directory)
-        .arg(tex_file)
+    run_shell_cmd(
+        Command::new("pdflatex")
+            .arg("-halt-on-error")
+            .arg("-output-directory")
+            .arg(output_directory)
+            .arg(tex_file),
+    )?;
+
+    Ok(())
+}
+
+fn run_shell_cmd(command: &mut Command) -> Result<(), Log> {
+    let output = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
@@ -216,7 +175,8 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
 
     if !output.status.success() {
         return Err(Log::ShellCommandError(format!(
-            "Command `pdflatex` failed with exit code {}.\n{}\n{}",
+            "Command `{}` failed with exit code {}.\n{}\n{}",
+            command.get_program().to_str().unwrap(),
             output.status.code().unwrap_or(-1),
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
