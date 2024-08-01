@@ -24,7 +24,7 @@ pub fn build_parser() -> Command {
                 .arg(
                     Arg::new("project")
                         .help("Name of the LaTeX project to compile")
-                        .required(true),
+                        .required(false),
                 ),
         )
 }

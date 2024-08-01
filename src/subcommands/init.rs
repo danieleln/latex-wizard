@@ -1,4 +1,5 @@
-use crate::logs::{log_error, Log};
+use crate::config::structure::{MAIN_TEX_FILE, OUTPUT_DIRECTORY};
+use crate::logs::Log;
 use clap::ArgMatches;
 use std::fs;
 use std::process::Command;
@@ -16,23 +17,25 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
             e.to_string()
         ))
     })?;
-    fs::create_dir(format!("{}/out", proj_name)).map_err(|e| {
+    fs::create_dir(format!("{}/{}", proj_name, OUTPUT_DIRECTORY)).map_err(|e| {
         Log::FileSystemError(format!(
-            "While creating directory {}/out:\n{}",
+            "While creating directory {}/{}:\n{}",
             proj_name,
+            OUTPUT_DIRECTORY,
             e.to_string()
         ))
     })?;
 
-    // Create main.tex file
-    fs::File::create(format!("{}/main.tex", proj_name)).map_err(|e| {
+    // Create the main `.tex` file
+    fs::File::create(format!("{}/{}", proj_name, MAIN_TEX_FILE)).map_err(|e| {
         Log::FileSystemError(format!(
-            "While creating file {}/main.tex:\n{}",
+            "While creating file {}/{}:\n{}",
             proj_name,
+            MAIN_TEX_FILE,
             e.to_string()
         ))
     })?;
-    // TODO: write a template latex code to main.tex
+    // TODO: write a template latex code to the main `.tex` file
 
     // Run "git init" command
     let output = Command::new("git")
@@ -40,7 +43,7 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
         .arg(proj_name)
         .output()
         .map_err(|e| {
-            Log::FileSystemError(format!(
+            Log::ShellCommandError(format!(
                 "While running `git init {}`:\n{}",
                 proj_name,
                 e.to_string()
@@ -48,10 +51,10 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
         })?;
 
     if !output.status.success() {
-        log_error(format!(
-            "An error occurred while running `git init {}`",
+        return Err(Log::ShellCommandError(format!(
+            "An error occurred while running `git init {}`.",
             proj_name
-        ));
+        )));
     }
 
     Ok(())

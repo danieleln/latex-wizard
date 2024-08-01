@@ -1,6 +1,6 @@
 const TAG_ERROR: &str = "[\x1b[31mERR\x1b[0m]";
 // const TAG_WARNING: &str = "[\x1b[33mWRN\x1b[0m]";
-// const TAG_INFO: &str = "[\x1b[36mWRN\x1b[0m]";
+const TAG_INFO: &str = "[\x1b[36mNFO\x1b[0m]";
 const TAG_HELP: &str = "[\x1b[32mHLP\x1b[0m]";
 
 #[derive(thiserror::Error, Debug)]
@@ -36,6 +36,6 @@ impl From<clap::error::Error> for Log {
     }
 }
 
-pub fn log_error(msg: String) {
-    println!("{} {}", TAG_ERROR, msg);
+pub fn log_info(msg: String) {
+    println!("{} {}", TAG_INFO, msg);
 }
