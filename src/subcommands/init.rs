@@ -12,14 +12,14 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
     // Make project directories
     fs::create_dir(proj_name).map_err(|e| {
         Log::FileSystemError(format!(
-            "While creating directory {}:\n{}",
+            "While creating directory `{}`:\n{}",
             proj_name,
             e.to_string()
         ))
     })?;
     fs::create_dir(format!("{}/{}", proj_name, OUTPUT_DIRECTORY)).map_err(|e| {
         Log::FileSystemError(format!(
-            "While creating directory {}/{}:\n{}",
+            "While creating directory `{}/{}`:\n{}",
             proj_name,
             OUTPUT_DIRECTORY,
             e.to_string()
@@ -29,7 +29,7 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
     // Create the main `.tex` file
     fs::File::create(format!("{}/{}", proj_name, MAIN_TEX_FILE)).map_err(|e| {
         Log::FileSystemError(format!(
-            "While creating file {}/{}:\n{}",
+            "While creating file `{}/{}`:\n{}",
             proj_name,
             MAIN_TEX_FILE,
             e.to_string()
@@ -44,7 +44,7 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
         .output()
         .map_err(|e| {
             Log::ShellCommandError(format!(
-                "While running `git init {}`:\n{}",
+                "While initializing a git repo in `{}`:\n{}",
                 proj_name,
                 e.to_string()
             ))
@@ -52,7 +52,7 @@ pub fn init(args: &ArgMatches) -> Result<(), Log> {
 
     if !output.status.success() {
         return Err(Log::ShellCommandError(format!(
-            "An error occurred while running `git init {}`.",
+            "An error occurred while initializing a git repo in `{}`.",
             proj_name
         )));
     }
