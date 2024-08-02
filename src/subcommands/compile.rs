@@ -1,51 +1,68 @@
-use crate::config::structure::{MAIN_PDF_FILE, MAIN_TEX_FILE, OUTPUT_DIRECTORY};
+use crate::config::structure::{MAIN_FILE_NAME, MAIN_PDF_FILE, MAIN_TEX_FILE, OUTPUT_DIRECTORY};
 use crate::logs::{log_error, log_info, log_warning, Log};
 use clap::ArgMatches;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::str::FromStr;
 
 pub fn compile(args: &ArgMatches) -> Result<(), Log> {
     // Find the project to compile
     let proj_name = args.get_one::<String>("project");
 
-    // Look for the main `.tex` file to compile
-    let main_tex_file = find_main_tex_file(&proj_name)?;
-
-    // Find the output directory and the output `.pdf` file
-    let proj_dir = main_tex_file.parent().unwrap();
-    let output_directory = proj_dir.join(OUTPUT_DIRECTORY);
-    let output_pdf = output_directory.join(MAIN_PDF_FILE);
+    // Look for the root directory of the project (the directory that
+    // contains the main `.tex` file
+    let proj_dir = find_project_root_directory(&proj_name)?;
 
     // Clean the output directory if required
     let clean_flag = args.get_one::<bool>("clean");
     if clean_flag == Some(&true) {
-        let result = clean_output_directory(&output_directory, &output_pdf);
+        // Find the output directory and the output `.pdf` file
+        let out_dir = proj_dir.join(OUTPUT_DIRECTORY);
+        let out_pdf = out_dir.join(MAIN_PDF_FILE);
+
+        let result = clean_output_directory(&out_dir, &out_pdf);
         if let Err(e) = result {
             println!("{}", e.to_string());
         }
     }
 
     // Finally, compile the project
-    compile_tex_file(&main_tex_file, &output_directory)
+    compile_tex_file(&proj_dir)
 }
 
-pub fn find_main_tex_file(proj_name: &Option<&String>) -> Result<PathBuf, Log> {
+pub fn find_project_root_directory(proj_name: &Option<&String>) -> Result<PathBuf, Log> {
     // Look for the main `.tex` file to be compiled
     match proj_name {
 
         // Check if proj_name is the main `.tex` file or if it's a
         // directory containing it
         Some(proj_name) => {
-            let proj_name = Path::new(&proj_name);
+            let proj_name = Path::new(&proj_name).to_path_buf();
 
             if !proj_name.exists() {
                 Err(format!("File or directory `{}` doesn't exist.", proj_name.display()))
             }
+
+            // Check if proj_name is the main `.tex` file
             else if proj_name.is_file() {
                 if proj_name.file_name() == Some(MAIN_TEX_FILE.as_ref()) {
-                    Ok(proj_name.to_path_buf())
+                    let root_dir = proj_name.parent().ok_or(
+                        Log::FileSystemError(format!(
+                            "Failed to get the directory containing `{}`",
+                            proj_name.display(),
+                        ))
+                    )?;
+
+                    // NOTE: when running `latex-wizard compile main.tex`,
+                    //       PathBuf::from("main.tex").parent() evals
+                    //       to Some("") rather than Some(".")
+                    if root_dir.as_os_str().is_empty() {
+                        Ok(PathBuf::from_str(".").unwrap())
+                    } else {
+                        Ok(root_dir.to_path_buf())
+                    }
                 }
                 else if proj_name.file_name() == None {
                     Err(format!("Failed to retrieve the file name of `{}`", proj_name.display()))
@@ -58,43 +75,50 @@ pub fn find_main_tex_file(proj_name: &Option<&String>) -> Result<PathBuf, Log> {
                     ))
                 }
             }
+
+            // Check if proj_name is the root directory of the project
             else if proj_name.is_dir() {
-                let current_directory = proj_name.to_path_buf();
-                let candidate_main_tex_file = current_directory.join(MAIN_TEX_FILE);
+                let candidate_main_tex_file = proj_name.join(MAIN_TEX_FILE);
 
                 if candidate_main_tex_file.exists() && candidate_main_tex_file.is_file() {
-                    Ok(candidate_main_tex_file)
+                    Ok(proj_name)
                 } else {
                     Err(format!(
                         "Failed to find the main `.tex` file (`{}`) inside `{}`.",
                         MAIN_TEX_FILE,
-                        current_directory.display()
+                        proj_name.display()
                     ))
                 }
             }
+
+            // Invalid file
             else {
-                Err(format!("none"))
+                Err(format!(
+                    "File `{}` should be either the root directory of the project or the main `.tex` file (`{}`)",
+                    proj_name.display(),
+                    MAIN_TEX_FILE
+                ))
             }
         }
 
-        // Check from the current directory upward until either
-        // reaching the root directory or finding a main.tex file
+        // Check if the current directory is the root directory of
+        // the project. If not, check all the parent directories,
+        // up to the root of the system "/"
         None => {
-            let current_directory = env::current_dir().map_err(|e| {
+            let mut current_directory = env::current_dir().map_err(|e| {
                 Log::FileSystemError(format!(
                     "While looking for `{}` file: failed to get current directory.\n{}",
                     MAIN_TEX_FILE,
                     e.to_string()
                 ))
-            })?;
+            })?.to_path_buf();
 
             // Look for the main `.tex` file
-            let mut current_directory = current_directory.to_path_buf();
             loop {
                 let candidate_main_tex_file = current_directory.join(MAIN_TEX_FILE);
 
                 if candidate_main_tex_file.exists() && candidate_main_tex_file.is_file() {
-                    break Ok(candidate_main_tex_file);
+                    break Ok(current_directory);
                 }
 
                 // Iterate all parent directories until reaching the root
@@ -110,10 +134,12 @@ pub fn find_main_tex_file(proj_name: &Option<&String>) -> Result<PathBuf, Log> {
 }
 
 // Compile a tex file
-pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Result<(), Log> {
+pub fn compile_tex_file(project_directory: &PathBuf) -> Result<(), Log> {
+    let output_directory = project_directory.join(OUTPUT_DIRECTORY);
+
     // Create the output directory if it's missing
     if !output_directory.exists() {
-        fs::create_dir(output_directory).map_err(|e| {
+        fs::create_dir(&output_directory).map_err(|e| {
             Log::FileSystemError(format!(
                 "While creating output directory `{}`:\n{}",
                 output_directory.display(),
@@ -124,10 +150,24 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
 
     // Log some infos to the user
     log_info(format!(
-        "Compiling `{}` to `{}`",
-        tex_file.display(),
+        "Compiling `{}/{}` to `{}`",
+        project_directory.display(),
+        MAIN_TEX_FILE,
         output_directory.display()
     ));
+
+    // Change the current working directory to the base directory of
+    // the project. Some LaTeX statements (like `\include{...}`)
+    // fail to resolve if the working directory is different from
+    // where the file being compiled is.
+    let result = env::set_current_dir(project_directory);
+    if let Err(e) = result {
+        log_error(format!(
+            "Failed to set the current working directory to `{}`. Some LaTeX statements (like `\\include`) might fail to compile.\n{}",
+            project_directory.display(),
+            e.to_string()
+        ));
+    }
 
     // Compilation process:
     // 1. run `pdflatex` a first time
@@ -141,25 +181,25 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
             // NOTE: flags have only one hypen according to `man pdflatex`!
             .arg("-halt-on-error")
             .arg("-output-directory")
-            .arg(&output_directory)
-            .arg(&tex_file),
+            .arg(OUTPUT_DIRECTORY)
+            .arg(MAIN_TEX_FILE),
     )?;
 
     // 2. Run makeglossaries
     run_shell_cmd(
         Command::new("makeglossaries")
             .arg("-d")
-            .arg(&output_directory)
-            .arg(tex_file.file_stem().unwrap()),
+            .arg(OUTPUT_DIRECTORY)
+            .arg(MAIN_FILE_NAME),
     )?;
     // Run biber
     run_shell_cmd(
         Command::new("biber")
             .arg("--input-directory")
-            .arg(&output_directory)
+            .arg(OUTPUT_DIRECTORY)
             .arg("--output-directory")
-            .arg(&output_directory)
-            .arg(tex_file.file_stem().unwrap()),
+            .arg(OUTPUT_DIRECTORY)
+            .arg(MAIN_FILE_NAME),
     )?;
 
     // 4. Run pdflatex
@@ -167,8 +207,8 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
         Command::new("pdflatex")
             .arg("-halt-on-error")
             .arg("-output-directory")
-            .arg(&output_directory)
-            .arg(&tex_file),
+            .arg(OUTPUT_DIRECTORY)
+            .arg(MAIN_TEX_FILE),
     )?;
 
     Ok(())
