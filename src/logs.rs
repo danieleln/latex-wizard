@@ -36,6 +36,10 @@ impl From<clap::error::Error> for Log {
     }
 }
 
+pub fn log_error(msg: String) {
+    println!("{} {}", TAG_ERROR, msg);
+}
+
 pub fn log_info(msg: String) {
     println!("{} {}", TAG_INFO, msg);
 }

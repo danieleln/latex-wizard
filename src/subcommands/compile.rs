@@ -1,5 +1,5 @@
-use crate::config::structure::{MAIN_TEX_FILE, OUTPUT_DIRECTORY};
-use crate::logs::{log_info, Log};
+use crate::config::structure::{MAIN_PDF_FILE, MAIN_TEX_FILE, OUTPUT_DIRECTORY};
+use crate::logs::{log_error, log_info, Log};
 use clap::ArgMatches;
 use std::env;
 use std::fs;
@@ -7,15 +7,27 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 pub fn compile(args: &ArgMatches) -> Result<(), Log> {
+    // Find the project to compile
     let proj_name = args.get_one::<String>("project");
 
     // Look for the main `.tex` file to compile
     let main_tex_file = find_main_tex_file(&proj_name)?;
 
-    // Find the output directory of the project
+    // Find the output directory and the output `.pdf` file
     let proj_dir = main_tex_file.parent().unwrap();
     let output_directory = proj_dir.join(OUTPUT_DIRECTORY);
+    let output_pdf = output_directory.join(MAIN_PDF_FILE);
 
+    // Clean the output directory if required
+    let clean_flag = args.get_one::<bool>("clean");
+    if clean_flag == Some(&true) {
+        let result = clean_output_directory(&output_directory, &output_pdf);
+        if let Err(e) = result {
+            println!("{}", e.to_string());
+        }
+    }
+
+    // Finally, compile the project
     compile_tex_file(&main_tex_file, &output_directory)
 }
 
@@ -126,26 +138,27 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
     // 1. Run pdflatex
     run_shell_cmd(
         Command::new("pdflatex")
+            // NOTE: flags have only one hypen according to `man pdflatex`!
             .arg("-halt-on-error")
             .arg("-output-directory")
-            .arg(output_directory)
-            .arg(tex_file),
+            .arg(&output_directory)
+            .arg(&tex_file),
     )?;
 
     // 2. Run makeglossaries
     run_shell_cmd(
         Command::new("makeglossaries")
             .arg("-d")
-            .arg(output_directory)
+            .arg(&output_directory)
             .arg(tex_file.file_stem().unwrap()),
     )?;
     // Run biber
     run_shell_cmd(
         Command::new("biber")
             .arg("--input-directory")
-            .arg(output_directory)
+            .arg(&output_directory)
             .arg("--output-directory")
-            .arg(output_directory)
+            .arg(&output_directory)
             .arg(tex_file.file_stem().unwrap()),
     )?;
 
@@ -154,8 +167,8 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
         Command::new("pdflatex")
             .arg("-halt-on-error")
             .arg("-output-directory")
-            .arg(output_directory)
-            .arg(tex_file),
+            .arg(&output_directory)
+            .arg(&tex_file),
     )?;
 
     Ok(())
@@ -181,6 +194,55 @@ fn run_shell_cmd(command: &mut Command) -> Result<(), Log> {
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         )));
+    }
+
+    Ok(())
+}
+
+fn clean_output_directory(output_directory: &PathBuf, output_pdf: &PathBuf) -> Result<(), Log> {
+    // Just keep the file name of the output `.pdf` file
+    let output_pdf = output_pdf.file_name().ok_or_else(|| {
+        Log::FileSystemError(format!("Invalid file name `{}`", output_pdf.display()))
+    })?;
+    // Useful for later
+    let output_pdf = Some(output_pdf);
+
+    if !output_directory.exists() {
+        log_info(format!(
+            "The output directory `{}` is missing already. No file was removed.",
+            output_directory.display(),
+        ));
+        return Ok(());
+    }
+
+    // Select files to be removed
+    let files_to_remove: Vec<PathBuf> = fs::read_dir(output_directory)
+        .map_err(|e| {
+            Log::FileSystemError(format!(
+                "An error occurred while reading the content of directory `{}`:\n{}",
+                output_directory.display(),
+                e.to_string(),
+            ))
+        })?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        // Remove any file in the output directory except for the output
+        // `.pdf` file (in case compilation goes wrong, at least the
+        // output `.pdf` is preserved)
+        .filter(|path| !path.is_file() || !(path.file_name() == output_pdf))
+        .collect();
+
+    // Remove the selected files
+    for file in files_to_remove {
+        log_info(format!("Removing `{}`", &file.display()));
+        let result = fs::remove_file(&file);
+        if let Err(e) = result {
+            log_error(format!(
+                "An error occurred while removing file `{}`:\n{}",
+                file.display(),
+                e.to_string()
+            ));
+        }
     }
 
     Ok(())

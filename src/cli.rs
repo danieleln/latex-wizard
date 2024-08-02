@@ -1,5 +1,5 @@
 use crate::config;
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 
 pub fn build_parser() -> Command {
     Command::new(config::info::APP)
@@ -25,6 +25,14 @@ pub fn build_parser() -> Command {
                     Arg::new("project")
                         .help("Name of the LaTeX project to compile")
                         .required(false),
+                )
+                .arg(
+                    Arg::new("clean")
+                        .short('c')
+                        .long("clean")
+                        .help("Start the compilation from scratch, by deleting the output of previous compilations")
+                        .action(ArgAction::SetTrue)
+                        .required(false)
                 ),
         )
 }
