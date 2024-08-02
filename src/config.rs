@@ -1,5 +1,5 @@
 pub mod info {
-    pub const APP: &str = "latex";
+    pub const APP: &str = "latex-wizard";
     pub const DESCRIPTION: &str = "Tool to manage LaTeX projects";
 }
 
