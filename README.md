@@ -91,3 +91,8 @@ Additional flags:
       except for the output `.pdf` file (`main.pdf`), which is left
       in case the compilation fails.
 
+
+
+## Known issues
+- `latex-wizard` runs `makeglossaries` and `biber` blindly. If either
+  the glossary or the bibliography is missing, compilation fails.
