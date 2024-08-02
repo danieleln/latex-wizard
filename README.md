@@ -55,7 +55,9 @@ and files:
 │
 ├── out/
 │
-└── .git/
+├── .git/
+│
+└── .gitignore
 ```
 
 Where:
@@ -64,7 +66,8 @@ Where:
 - `out/` is the output directory. When compiling, all the compilation
       files (as well as the output `.pdf` file) will be stored in this
       directory
-- `.git`: a git repository is automatically initialized
+- `.git`: a git repository that is automatically initialized
+- `.gitignore` contains a list of files that git should ignore
 
 
 
