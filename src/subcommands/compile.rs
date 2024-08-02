@@ -1,5 +1,5 @@
 use crate::config::structure::{MAIN_PDF_FILE, MAIN_TEX_FILE, OUTPUT_DIRECTORY};
-use crate::logs::{log_error, log_info, Log};
+use crate::logs::{log_error, log_info, log_warning, Log};
 use clap::ArgMatches;
 use std::env;
 use std::fs;
@@ -234,7 +234,7 @@ fn clean_output_directory(output_directory: &PathBuf, output_pdf: &PathBuf) -> R
 
     // Remove the selected files
     for file in files_to_remove {
-        log_info(format!("Removing `{}`", &file.display()));
+        log_warning(format!("Removing `{}`", &file.display()));
         let result = fs::remove_file(&file);
         if let Err(e) = result {
             log_error(format!(
