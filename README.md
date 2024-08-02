@@ -1,14 +1,14 @@
-# latex
-`latex` is a command line tool to manage, you guessed, LaTeX projects.
+# latex-wizard
+`latex-wizard` is a command line tool to manage, you guessed, LaTeX projects.
 It allows to initialize a new LaTeX project and to compile it.
 
 
 
 ## Requirements
-The installation of `latex` requires compiling its source code (`rust`).
-So, make sure to have `cargo` installed first.
+The installation of `latex-wizard` requires compiling its source code
+(`rust`). So, make sure to have `cargo` installed first.
 
-Once installed, `latex` relies on the following commands to compile
+Once installed, `latex-wizard` relies on the following commands to compile
 `LaTeX` projects:
 
 - `pdflatex` to generate the output `.pdf`
@@ -19,8 +19,8 @@ Once installed, `latex` relies on the following commands to compile
 
 ## Installation
 ```bash
-git clone https://github.com/danieleln/latex.git
-cd latex
+git clone https://github.com/danieleln/latex-wizard.git
+cd latex-wizard
 cargo build --release
 cargo install --path .
 ```
@@ -34,18 +34,18 @@ Quick overview of the available commands:
 
 ```bash
 # Initialize a new LaTeX project
-latex init my-latex-proj
+latex-wizard init my-latex-proj
 
 # Compile an existing project
-latex compile [--clean]
-latex compile /path/to/my-latex-proj [--clean]
-latex compile /path/to/my-latex-proj/main.tex [--clean]
+latex-wizard compile [--clean]
+latex-wizard compile /path/to/my-latex-proj [--clean]
+latex-wizard compile /path/to/my-latex-proj/main.tex [--clean]
 ```
 
 
 
 ### Init command
-Running `latex init my-latex-proj` creates the following directories
+Running `latex-wizard init my-latex-proj` creates the following directories
 and files:
 
 ```
@@ -72,14 +72,14 @@ Where:
 
 
 ### Compile command
-The easiest way to compile a project is by running `latex compile`.
+The easiest way to compile a project is by running `latex-wizard compile`.
 This command works when inside the `./my-latex-proj` directory or any
 of its sub-directories.
 Other ways to compile the project are:
 
 ```bash
-latex compile /path/to/my-latex-proj
-latex compile /path/to/my-latex-proj/main.tex
+latex-wizard compile /path/to/my-latex-proj
+latex-wizard compile /path/to/my-latex-proj/main.tex
 ```
 
 Note that, specifying any other path (like other `.tex` files inside
