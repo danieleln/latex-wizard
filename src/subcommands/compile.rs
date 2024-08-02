@@ -124,7 +124,7 @@ pub fn compile_tex_file(tex_file: &PathBuf, output_directory: &PathBuf) -> Resul
 
     // Log some infos to the user
     log_info(format!(
-        "Compiling `{}` into `{}`",
+        "Compiling `{}` to `{}`",
         tex_file.display(),
         output_directory.display()
     ));
