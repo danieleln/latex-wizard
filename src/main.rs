@@ -3,13 +3,21 @@ mod config;
 mod logs;
 mod subcommands;
 
+use logs::Log;
 use std::process;
 
 fn main() {
     let result = app();
-    if let Err(log) = result {
-        println!("{}", log);
-        process::exit(1);
+
+    match result {
+        Ok(()) => {}
+        Err(Log::HelpMessage(msg)) => {
+            println!("{}", msg);
+        }
+        Err(err) => {
+            println!("{}", err);
+            process::exit(1);
+        }
     }
 }
 
