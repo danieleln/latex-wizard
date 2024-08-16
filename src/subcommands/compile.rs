@@ -31,7 +31,14 @@ pub fn compile(args: &ArgMatches) -> Result<(), Log> {
     }
 
     // Finally, compile the project
-    compile_tex_file(&proj_dir)
+    compile_tex_file(&proj_dir)?;
+
+    log_info(format!(
+        "Project `{}` was compiled succesfully.",
+        proj_dir.display()
+    ));
+
+    Ok(())
 }
 
 fn clean_output_directory(output_directory: &PathBuf, output_pdf: &PathBuf) -> Result<(), Log> {
